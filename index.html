@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal de Solicitudes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0e0f11;
+    --surface:   #16181c;
+    --border:    #2a2d35;
+    --border-hi: #3e4250;
+    --text:      #e8e9ec;
+    --muted:     #6b6f7d;
+    --accent:    #c8f059;
+    --accent-dk: #9bbf2e;
+    --danger:    #f05959;
+    --input-bg:  #1c1f26;
+    --radius:    10px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: .5;
+  }
+
+  /* ── ACCENT GLOW ── */
+  body::after {
+    content: '';
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200,240,89,.07) 0%, transparent 70%);
+    top: -200px; right: -200px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+  }
+  .logo-mark span {
+    display: block;
+    width: 14px; height: 14px;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .logo-text em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  /* ── MAIN ── */
+  main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 32px 36px 28px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .card-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+    border-radius: 18px 18px 0 0;
+  }
+
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .step-badge::before {
+    content: '';
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .4; transform: scale(.7); }
+  }
+
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .card-subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  /* ── FORM BODY ── */
+  .card-body {
+    padding: 32px 36px;
+  }
+
+  .field {
+    margin-bottom: 22px;
+    animation: fieldIn .3s ease both;
+  }
+
+  @keyframes fieldIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  label .req {
+    color: var(--accent);
+    margin-left: 3px;
+  }
+
+  label .tipo-tag {
+    float: right;
+    font-size: 10px;
+    letter-spacing: .04em;
+    background: var(--bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 7px;
+    text-transform: none;
+    font-weight: 400;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 300;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -webkit-appearance: none;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(200,240,89,.1);
+  }
+
+  input.error, select.error, textarea.error {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(240,89,89,.1);
+  }
+
+  textarea { resize: vertical; min-height: 90px; }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6f7d' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+    cursor: pointer;
+  }
+
+  select option { background: var(--surface); }
+
+  /* Checkbox */
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+
+  .checkbox-field:hover { border-color: var(--border-hi); }
+  .checkbox-field:has(input:checked) { border-color: var(--accent); }
+
+  .checkbox-field input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .checkbox-label {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  /* Error msg */
+  .error-msg {
+    font-size: 12px;
+    color: var(--danger);
+    margin-top: 6px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+
+  /* ── SELECTOR DE TÓPICO ── */
+  .topic-selector {
+    position: relative;
+  }
+
+  .topic-selector select {
+    font-weight: 400;
+  }
+
+  .topic-selector .loading-indicator {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    display: none;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border-hi);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── QUESTIONS AREA ── */
+  #questions-area {
+    transition: opacity .3s;
+  }
+
+  #questions-area.loading {
+    opacity: .4;
+    pointer-events: none;
+  }
+
+  .questions-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .questions-header-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .questions-header-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ── FOOTER / SUBMIT ── */
+  .card-footer {
+    padding: 0 36px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .field-count {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .field-count strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .btn-submit {
+    position: relative;
+    background: var(--accent);
+    color: #0e0f11;
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-submit:hover {
+    background: var(--accent-dk);
+    box-shadow: 0 4px 20px rgba(200,240,89,.25);
+    transform: translateY(-1px);
+  }
+
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── SUCCESS STATE ── */
+  .success-screen {
+    display: none;
+    padding: 60px 36px;
+    text-align: center;
+  }
+
+  .success-screen.show { display: block; }
+
+  .success-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(200,240,89,.12);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+  }
+
+  .success-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+
+  .success-msg {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .btn-reset {
+    background: transparent;
+    border: 1px solid var(--border-hi);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 10px 22px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+
+  .btn-reset:hover { background: var(--border); }
+
+  /* ── DEMO BANNER ── */
+  .demo-banner {
+    background: rgba(200,240,89,.08);
+    border: 1px solid rgba(200,240,89,.2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 20px 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-note {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .footer-note a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 32px 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header { padding: 20px; }
+    .card-header, .card-body { padding: 24px 20px; }
+    .card-footer { padding: 0 20px 24px; flex-direction: column; align-items: stretch; }
+    .btn-submit { width: 100%; }
+    footer { flex-direction: column; gap: 8px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="logo-mark"><span></span></div>
+    <span class="logo-text">Portal de <em>Solicitudes</em></span>
+  </header>
+
+  <main>
+    <div class="card">
+
+      <!-- FORM CONTENT -->
+      <div id="form-content">
+        <div class="card-header">
+          <div class="step-badge">Solicitud activa</div>
+          <h1 class="card-title">Nueva solicitud</h1>
+          <p class="card-subtitle">Selecciona el tipo de solicitud para cargar el formulario correspondiente.</p>
+        </div>
+
+        <div class="card-body">
+
+          <div class="demo-banner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Modo demo — conecta tu API de Monday en <code>config.js</code> para datos reales
+          </div>
+
+          <!-- TOPIC SELECT -->
+          <div class="field">
+            <label for="topic-select">
+              Tipo de solicitud <span class="req">*</span>
+            </label>
+            <div class="topic-selector">
+              <select id="topic-select">
+                <option value="">Cargando opciones...</option>
+              </select>
+              <div class="loading-indicator" id="topic-spinner">
+                <div class="spinner"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DYNAMIC QUESTIONS -->
+          <div id="questions-area"></div>
+
+        </div>
+
+        <div class="card-footer">
+          <span class="field-count" id="field-count"></span>
+          <button class="btn-submit" id="btn-submit" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Enviar solicitud
+          </button>
+        </div>
+      </div>
+
+      <!-- SUCCESS STATE -->
+      <div class="success-screen" id="success-screen">
+        <div class="success-icon">✓</div>
+        <h2 class="success-title">Solicitud enviada</h2>
+        <p class="success-msg" id="success-detail">Tu solicitud ha sido registrada correctamente en Monday.</p>
+        <button class="btn-reset" onclick="resetForm()">Hacer otra solicitud</button>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <span class="footer-note">Conectado a Monday.com · n8n</span>
+    <span class="footer-note">Solicitudes registradas esta sesión: <strong id="session-count">0</strong></span>
+  </footer>
+
+</div>
+
+<!-- CONFIG — editar antes de desplegar -->
+<script>
+window.CONFIG = {
+  // URL de tu webhook de n8n (GET para obtener tópicos)
+  N8N_TOPICS_URL: 'https://TU-N8N.com/webhook/form-topics',
+
+  // URL de tu webhook de n8n (GET para obtener preguntas de un tópico)
+  // Recibirá el parámetro ?topicId=XXX
+  N8N_QUESTIONS_URL: 'https://TU-N8N.com/webhook/form-questions',
+
+  // URL de tu webhook de n8n (POST para enviar respuestas)
+  N8N_SUBMIT_URL: 'https://TU-N8N.com/webhook/form-submit',
+
+  // Poner en true para usar datos de demo sin n8n
+  DEMO_MODE: true,
+};
+</script>
+
+<!-- DEMO DATA -->
+<script>
+const DEMO_TOPICS = [
+  { id: 'horas-extra',    name: 'Horas extra' },
+  { id: 'vacaciones',     name: 'Solicitud de vacaciones' },
+  { id: 'capacitacion',   name: 'Capacitación / Curso' },
+  { id: 'equipamiento',   name: 'Equipamiento de trabajo' },
+  { id: 'home-office',    name: 'Trabajo remoto' },
+];
+
+const DEMO_QUESTIONS = {
+  'horas-extra': [
+    { id: 'q1', label: 'Nombre del empleado',      tipo: 'texto',    obligatorio: true },
+    { id: 'q2', label: 'Supervisor directo',         tipo: 'texto',    obligatorio: true },
+    { id: 'q3', label: 'Fecha de las horas extra',   tipo: 'fecha',    obligatorio: true },
+    { id: 'q4', label: 'Cantidad de horas',           tipo: 'numero',   obligatorio: true },
+    { id: 'q5', label: 'Motivo de la solicitud',      tipo: 'textarea', obligatorio: false },
+    { id: 'q6', label: 'Autorizado por supervisor',   tipo: 'checkbox', obligatorio: false },
+  ],
+  'vacaciones': [
+    { id: 'q1', label: 'Nombre del empleado',        tipo: 'texto',    obligatorio: true },
+    { id: 'q2', label: 'Departamento',               tipo: 'texto',    obligatorio: true },
+    { id: 'q3', label: 'Fecha de inicio',            tipo: 'fecha',    obligatorio: true },
+    { id: 'q4', label: 'Fecha de regreso',           tipo: 'fecha',    obligatorio: true },
+    { id: 'q5', label: 'Días solicitados',           tipo: 'numero',   obligatorio: true },
+    { id: 'q6', label: 'Persona que cubre ausencia', tipo: 'texto',    obligatorio: false },
+    { id: 'q7', label: 'Observaciones adicionales',  tipo: 'textarea', obligatorio: false },
+  ],
+  'capacitacion': [
+    { id: 'q1', label: 'Nombre del empleado',        tipo: 'texto',    obligatorio: true },
+    { id: 'q2', label: 'Nombre del curso',           tipo: 'texto',    obligatorio: true },
+    { id: 'q3', label: 'Proveedor / Institución',    tipo: 'texto',    obligatorio: false },
+    { id: 'q4', label: 'Costo estimado (USD)',        tipo: 'numero',   obligatorio: false },
+    { id: 'q5', label: 'Fecha de inicio',            tipo: 'fecha',    obligatorio: false },
+    { id: 'q6', label: 'Justificación',              tipo: 'textarea', obligatorio: true },
+    { id: 'q7', label: 'Modalidad online',           tipo: 'checkbox', obligatorio: false },
+  ],
+  'equipamiento': [
+    { id: 'q1', label: 'Nombre del empleado',        tipo: 'texto',    obligatorio: true },
+    { id: 'q2', label: 'Equipo solicitado',          tipo: 'texto',    obligatorio: true },
+    { id: 'q3', label: 'Cantidad',                   tipo: 'numero',   obligatorio: true },
+    { id: 'q4', label: 'Justificación del pedido',   tipo: 'textarea', obligatorio: true },
+    { id: 'q5', label: 'Urgente',                    tipo: 'checkbox', obligatorio: false },
+  ],
+  'home-office': [
+    { id: 'q1', label: 'Nombre del empleado',        tipo: 'texto',    obligatorio: true },
+    { id: 'q2', label: 'Días por semana',            tipo: 'numero',   obligatorio: true },
+    { id: 'q3', label: 'Fecha de inicio',            tipo: 'fecha',    obligatorio: false },
+    { id: 'q4', label: 'Motivo',                     tipo: 'textarea', obligatorio: false },
+    { id: 'q5', label: 'Cuenta con conexión estable',tipo: 'checkbox', obligatorio: false },
+  ],
+};
+</script>
+
+<!-- APP LOGIC -->
+<script>
+let sessionCount = 0;
+let currentQuestions = [];
+
+const topicSelect   = document.getElementById('topic-select');
+const questionsArea = document.getElementById('questions-area');
+const btnSubmit     = document.getElementById('btn-submit');
+const fieldCount    = document.getElementById('field-count');
+const topicSpinner  = document.getElementById('topic-spinner');
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+  try {
+    const topics = await fetchTopics();
+    populateTopics(topics);
+  } catch (e) {
+    topicSelect.innerHTML = '<option value="">Error al cargar — revisa la configuración</option>';
+    console.error('Error cargando tópicos:', e);
+  }
+}
+
+// ── FETCH TOPICS ──────────────────────────────────────────
+async function fetchTopics() {
+  if (window.CONFIG.DEMO_MODE) {
+    await delay(600);
+    return DEMO_TOPICS;
+  }
+  const res = await fetch(window.CONFIG.N8N_TOPICS_URL);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ── FETCH QUESTIONS ───────────────────────────────────────
+async function fetchQuestions(topicId) {
+  if (window.CONFIG.DEMO_MODE) {
+    await delay(500);
+    return DEMO_QUESTIONS[topicId] || [];
+  }
+  const url = `${window.CONFIG.N8N_QUESTIONS_URL}?topicId=${encodeURIComponent(topicId)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ── POPULATE TOPICS ───────────────────────────────────────
+function populateTopics(topics) {
+  topicSelect.innerHTML = '<option value="">Selecciona una opción...</option>';
+  topics.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id;
+    o.textContent = t.name;
+    topicSelect.appendChild(o);
+  });
+}
+
+// ── ON TOPIC CHANGE ───────────────────────────────────────
+topicSelect.addEventListener('change', async () => {
+  const topicId = topicSelect.value;
+  questionsArea.innerHTML = '';
+  btnSubmit.disabled = true;
+  fieldCount.textContent = '';
+
+  if (!topicId) return;
+
+  topicSpinner.style.display = 'block';
+  questionsArea.classList.add('loading');
+
+  try {
+    const questions = await fetchQuestions(topicId);
+    currentQuestions = questions;
+    renderQuestions(questions);
+  } catch (e) {
+    questionsArea.innerHTML = `<p style="color:var(--danger);font-size:14px;">Error al cargar preguntas: ${e.message}</p>`;
+    console.error(e);
+  } finally {
+    topicSpinner.style.display = 'none';
+    questionsArea.classList.remove('loading');
+  }
+});
+
+// ── RENDER QUESTIONS ──────────────────────────────────────
+function renderQuestions(questions) {
+  if (!questions.length) {
+    questionsArea.innerHTML = '<div class="empty-state">Este tópico no tiene preguntas configuradas en Monday.</div>';
+    return;
+  }
+
+  let html = `
+    <div class="questions-header">
+      <span class="questions-header-line"></span>
+      <span class="questions-header-label">Preguntas del formulario</span>
+      <span class="questions-header-line"></span>
+    </div>
+  `;
+
+  questions.forEach((q, i) => {
+    html += buildField(q, i);
+  });
+
+  questionsArea.innerHTML = html;
+
+  const obligatorios = questions.filter(q => q.obligatorio).length;
+  fieldCount.innerHTML = `<strong>${questions.length}</strong> campo${questions.length !== 1 ? 's' : ''}`;
+
+  btnSubmit.disabled = false;
+
+  // Staggered animation
+  questionsArea.querySelectorAll('.field').forEach((el, i) => {
+    el.style.animationDelay = `${i * 60}ms`;
+  });
+}
+
+// ── BUILD FIELD ───────────────────────────────────────────
+function buildField(q, index) {
+  const req = q.obligatorio ? '<span class="req">*</span>' : '';
+  const tipoMap = {
+    texto: 'Texto', numero: 'Número', checkbox: 'Sí / No',
+    fecha: 'Fecha', textarea: 'Texto largo', select: 'Selección'
+  };
+  const tipoLabel = tipoMap[q.tipo] || q.tipo;
+
+  let input = '';
+
+  switch (q.tipo) {
+    case 'texto':
+      input = `<input type="text" id="${q.id}" name="${q.id}" placeholder="Escribe aquí..." ${q.obligatorio ? 'required' : ''}>`;
+      break;
+    case 'numero':
+      input = `<input type="number" id="${q.id}" name="${q.id}" min="0" step="1" placeholder="0" ${q.obligatorio ? 'required' : ''}>`;
+      break;
+    case 'fecha':
+      input = `<input type="date" id="${q.id}" name="${q.id}" ${q.obligatorio ? 'required' : ''}>`;
+      break;
+    case 'textarea':
+      input = `<textarea id="${q.id}" name="${q.id}" rows="3" placeholder="Escribe aquí..." ${q.obligatorio ? 'required' : ''}></textarea>`;
+      break;
+    case 'checkbox':
+      return `
+        <div class="field" style="animation-delay:${index * 60}ms">
+          <label><span class="tipo-tag">${tipoLabel}</span>${q.label}${req}</label>
+          <label class="checkbox-field" for="${q.id}">
+            <input type="checkbox" id="${q.id}" name="${q.id}">
+            <span class="checkbox-label">Sí, confirmo</span>
+          </label>
+          <span class="error-msg" id="err-${q.id}">Este campo es requerido.</span>
+        </div>`;
+    case 'select':
+      const ops = (q.opciones || []).map(o => `<option value="${o}">${o}</option>`).join('');
+      input = `<select id="${q.id}" name="${q.id}" ${q.obligatorio ? 'required' : ''}><option value="">Selecciona...</option>${ops}</select>`;
+      break;
+    default:
+      input = `<input type="text" id="${q.id}" name="${q.id}" ${q.obligatorio ? 'required' : ''}>`;
+  }
+
+  return `
+    <div class="field" style="animation-delay:${index * 60}ms">
+      <label for="${q.id}"><span class="tipo-tag">${tipoLabel}</span>${q.label}${req}</label>
+      ${input}
+      <span class="error-msg" id="err-${q.id}">Este campo es requerido.</span>
+    </div>`;
+}
+
+// ── SUBMIT ────────────────────────────────────────────────
+btnSubmit.addEventListener('click', async () => {
+  if (!validateForm()) return;
+
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;border-color:#0e0f11;border-top-color:#0e0f11;opacity:.5"></div> Enviando...`;
+
+  const payload = buildPayload();
+
+  try {
+    if (!window.CONFIG.DEMO_MODE) {
+      const res = await fetch(window.CONFIG.N8N_SUBMIT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    } else {
+      await delay(1000);
+      console.log('Demo payload:', payload);
+    }
+
+    sessionCount++;
+    document.getElementById('session-count').textContent = sessionCount;
+
+    const topicName = topicSelect.options[topicSelect.selectedIndex].text;
+    document.getElementById('success-detail').textContent =
+      `Tu solicitud de "${topicName}" ha sido registrada en Monday.`;
+
+    document.getElementById('form-content').style.display = 'none';
+    document.getElementById('success-screen').classList.add('show');
+
+  } catch (e) {
+    alert('Error al enviar: ' + e.message);
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Enviar solicitud`;
+  }
+});
+
+// ── VALIDATE ──────────────────────────────────────────────
+function validateForm() {
+  let valid = true;
+  currentQuestions.forEach(q => {
+    const el = document.getElementById(q.id);
+    const err = document.getElementById('err-' + q.id);
+    if (!el || !err) return;
+
+    let empty = false;
+    if (q.tipo === 'checkbox') {
+      empty = false; // checkboxes not required by default
+    } else {
+      empty = q.obligatorio && !el.value.trim();
+    }
+
+    if (empty) {
+      el.classList.add('error');
+      err.classList.add('show');
+      valid = false;
+    } else {
+      el.classList.remove('error');
+      err.classList.remove('show');
+    }
+  });
+  return valid;
+}
+
+// ── BUILD PAYLOAD ─────────────────────────────────────────
+function buildPayload() {
+  const topicId   = topicSelect.value;
+  const topicName = topicSelect.options[topicSelect.selectedIndex].text;
+  const respuestas = {};
+
+  currentQuestions.forEach(q => {
+    const el = document.getElementById(q.id);
+    if (!el) return;
+    respuestas[q.id] = {
+      label: q.label,
+      tipo:  q.tipo,
+      valor: q.tipo === 'checkbox' ? el.checked : el.value,
+    };
+  });
+
+  return {
+    topicId,
+    topicName,
+    timestamp: new Date().toISOString(),
+    respuestas,
+  };
+}
+
+// ── RESET ─────────────────────────────────────────────────
+function resetForm() {
+  document.getElementById('success-screen').classList.remove('show');
+  document.getElementById('form-content').style.display = '';
+  topicSelect.value = '';
+  questionsArea.innerHTML = '';
+  fieldCount.textContent = '';
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Enviar solicitud`;
+  currentQuestions = [];
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── LIVE VALIDATION ───────────────────────────────────────
+document.addEventListener('input', e => {
+  if (e.target.closest('#questions-area')) {
+    const id = e.target.id;
+    const err = document.getElementById('err-' + id);
+    if (err && e.target.value) {
+      e.target.classList.remove('error');
+      err.classList.remove('show');
+    }
+  }
+});
+
+init();
+</script>
+</body>
+</html>
